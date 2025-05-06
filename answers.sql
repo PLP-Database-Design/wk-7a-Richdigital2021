@@ -1,67 +1,70 @@
 -- =============================================
 -- Question 1: Achieving 1NF (First Normal Form)
 -- =============================================
--- Transform multi-valued Products into atomic values (1 product per row)
 
--- Simulate original ProductDetail table
-DROP TEMPORARY TABLE IF EXISTS ProductDetail;
-CREATE TEMPORARY TABLE ProductDetail (
+
+-- Creating ProductDetail table
+
+CREATE TABLE ProductDetail (
     OrderID INT,
     CustomerName VARCHAR(100),
-    Products VARCHAR(255)
+    Products VARCHAR(100)
 );
 
-INSERT INTO ProductDetail VALUES
-(101, 'John Doe', 'Laptop, Mouse'),
-(102, 'Jane Smith', 'Tablet, Keyboard, Mouse'),
+-- Inserting data into ProductDetail table to achieve 1NF
+-- Each product in a separate row, even if it belongs to the same order and customer
+
+INSERT INTO ProductDetail(OrderID, CustomerName, Products)
+VALUES
+(101, 'John Doe', 'Laptop'),
+(101, 'John Doe', 'Mouse'),
+(102, 'Jane Smith', 'Tablet'),
+(102, 'Jane Smith', 'Keyboard'),
+(102, 'Jane Smith', 'Mouse'),
 (103, 'Emily Clark', 'Phone');
 
--- Create helper numbers table (for splitting strings)
-DROP TEMPORARY TABLE IF EXISTS numbers;
-CREATE TEMPORARY TABLE numbers (n INT);
-INSERT INTO numbers VALUES (1), (2), (3), (4), (5);
 
--- Use SUBSTRING_INDEX to split products into rows
-SELECT 
-    pd.OrderID,
-    pd.CustomerName,
-    TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pd.Products, ',', n.n), ',', -1)) AS Product
-FROM 
-    ProductDetail pd
-JOIN 
-    numbers n ON n.n <= 1 + LENGTH(pd.Products) - LENGTH(REPLACE(pd.Products, ',', ''))
-WHERE 
-    TRIM(SUBSTRING_INDEX(SUBSTRING_INDEX(pd.Products, ',', n.n), ',', -1)) <> '';
     
 
 -- ==============================================
 -- Question 2: Achieving 2NF (Second Normal Form)
 -- ==============================================
--- Remove partial dependency: CustomerName depends on OrderID (not full key)
 
--- Simulate original OrderDetails table
-DROP TEMPORARY TABLE IF EXISTS OrderDetails;
-CREATE TEMPORARY TABLE OrderDetails (
+-- Creating Orders table
+
+CREATE TABLE Orders(
     OrderID INT,
     CustomerName VARCHAR(100),
-    Product VARCHAR(100),
-    Quantity INT
 );
 
-INSERT INTO OrderDetails VALUES
-(101, 'John Doe', 'Laptop', 2),
-(101, 'John Doe', 'Mouse', 1),
-(102, 'Jane Smith', 'Tablet', 3),
-(102, 'Jane Smith', 'Keyboard', 1),
-(102, 'Jane Smith', 'Mouse', 2),
-(103, 'Emily Clark', 'Phone', 1);
+-- Inserting data into Orders table to achieve 2NF
+-- Each order with its customer name, ensuring no partial dependency
+INSERT INTO Orders VALUES
+(101, 'John Doe'),
+(101, 'John Doe'),
+(102, 'Jane Smith'),
+(102, 'Jane Smith'),
+(102, 'Jane Smith'),
+(103, 'Emily Clark');
 
--- Step 1: CustomerOrder table (each order’s customer info)
-SELECT DISTINCT OrderID, CustomerName
-FROM OrderDetails;
+-- Creating Product table
 
--- Step 2: OrderItems table (each product in each order)
-SELECT OrderID, Product, Quantity
-FROM OrderDetails;
+CREATE TABLE Product (
+    OrderID INT,
+    Product VARCHAR(100),
+    Quantity INT,
+    PRIMARY KEY (OrderID, Product),
+    FOREIGN KEY (OrderID) REFERENCES Orders(OrderID)
+);
 
+-- Inserting data into Product table to achieve 2NF
+-- Each product with its quantity, ensuring no partial dependency
 
+INSERT INTO Product (OrderID, Product, Quantity)
+VALUES
+(101, 'Laptop', 2),
+(101, 'Mouse', 1),
+(102, 'Tablet', 3),
+(102, 'Keyboard', 1),
+(102, 'Mouse', 2),
+(103, 'Phone', 1);
